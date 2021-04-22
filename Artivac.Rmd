@@ -24,6 +24,7 @@ library('pROC')
 library('class')
 library('rpart')
 library('SwarmSVM')
+library('rio')
 ```
 
 ```{r}
@@ -618,3 +619,31 @@ roc(factor(validation.normalized$train_indessa.loan_status), knn.normalized.resu
 
 The winner is still Gaussian Naive Bayes on original data, AUC: 68.5.
 
+Now let's predict on the vanilla_test.feature_selection with the Gaussian Naive Bayes data.
+```{r}
+O = matrix(as.numeric(unlist(vanilla_test.feature_selection[,2:6])), ncol=5, byrow=F)
+```
+
+```{r}
+colnames(O) <- c("funded_amnt_inv", "term_num", "dti", "l_w_p", "total_rev_hi_lim")
+print(colnames(O))
+```
+
+Final Testing
+```{r}
+gnb.original.test_output = predict(gnb, newdata = O, type = "class") # head(gnb %class% M)
+```
+
+```{r}
+P = data.frame(vanilla_test.feature_selection[,1])
+P$loan_status = unlist(gnb.original.test_output)
+```
+
+```{r}
+colnames(P) <- c("member_id", "loan_status")
+print(colnames(P))
+```
+
+```{r}
+export(P,'submission_1.csv')
+```
