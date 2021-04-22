@@ -1,0 +1,620 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+```{r}
+library('naivebayes')
+library('pROC')
+library('class')
+library('rpart')
+library('SwarmSVM')
+```
+
+```{r}
+train_indessa <- read.csv("~/R/ML_Artivatic_dataset/train_indessa.csv", stringsAsFactors=FALSE)
+summary(train_indessa)
+```
+
+```{r}
+term_total = train_indessa$term
+term_num = c()
+for (t in term_total) {
+  term_num = c(term_num, as.integer(substr(t,1,2)))
+}
+```
+
+```{r}
+home_own = c()
+for (h in train_indessa$home_ownership) {
+  if (h == "ANY") {
+    o = 1
+  } else if (h == "MORTGAGE") {
+    o = 2
+  } else if (h == "NONE") {
+    o = 3
+  } else if (h == "OTHER") {
+    o = 4
+  } else if (h == "OWN") {
+    o = 5
+  } else {
+    o = 6
+  }
+  home_own = c(home_own, o)
+}
+```
+
+```{r}
+ver_status = c()
+for (v in train_indessa$verification_status) {
+  if (v == "Not Verified") {
+    s = 1
+  } else if (h == "Source Verified") {
+    s = 2
+  } else {
+    s = 3
+  }
+  ver_status = c(ver_status, s)
+}
+```
+
+```{r}
+train_indessa$delinq_2yrs[is.na(train_indessa$delinq_2yrs)] <- 0
+```
+
+```{r}
+train_indessa$inq_last_6mths[is.na(train_indessa$inq_last_6mths)] <- 0
+```
+
+```{r}
+train_indessa$mths_since_last_delinq[is.na(train_indessa$mths_since_last_delinq)] <- 0
+```
+
+```{r}
+train_indessa$mths_since_last_record[is.na(train_indessa$mths_since_last_record)] <- 0
+```
+
+```{r}
+train_indessa$open_acc[is.na(train_indessa$open_acc)] <- 0
+```
+
+```{r}
+train_indessa$pub_rec[is.na(train_indessa$pub_rec)] <- 0
+```
+
+```{r}
+train_indessa$revol_util[is.na(train_indessa$revol_util)] <- 0
+```
+
+```{r}
+train_indessa$total_acc[is.na(train_indessa$total_acc)] <- 0
+```
+
+```{r}
+train_indessa$collections_12_mths_ex_med[is.na(train_indessa$collections_12_mths_ex_med)] <- 0
+```
+
+```{r}
+train_indessa$mths_since_last_major_derog[is.na(train_indessa$mths_since_last_major_derog)] <- 0
+```
+
+```{r}
+app_type = c()
+for (a in train_indessa$application_type) {
+  if (a == "INDIVIDUAL") {
+    t = 1
+  } else {
+    t = 2
+  }
+  app_type = c(app_type, t)
+}
+```
+
+```{r, results='hide'}
+l_week_pay = train_indessa$last_week_pay
+l_w_p = c()
+for (l in l_week_pay) {
+  n = nchar(l)
+  l_w_p = c(l_w_p, as.integer(substr(l,1,n - 7)))
+}
+l_w_p[is.na(l_w_p)] <- 0
+```
+
+```{r}
+gra = train_indessa$grade
+gd = c()
+for (g in gra) {
+  if (g == "A") {
+    d = 1
+  } else if (g == "B") {
+    d = 2
+  } else if (g == "C") {
+    d = 3
+  } else if (g == "D") {
+    d = 4
+  } else {
+    d = 5
+  }
+  gd = c(gd, d)
+}
+```
+
+```{r}
+train_indessa$acc_now_delinq[is.na(train_indessa$acc_now_delinq)] <- 0
+```
+
+```{r}
+train_indessa$tot_coll_amt[is.na(train_indessa$tot_coll_amt)] <- 0
+```
+
+```{r}
+train_indessa$tot_cur_bal[is.na(train_indessa$tot_cur_bal)] <- 0
+```
+
+```{r}
+summary(train_indessa$tot_cur_bal)
+```
+
+```{r}
+train_indessa$total_rev_hi_lim[is.na(train_indessa$total_rev_hi_lim)] <- 0
+```
+
+```{r}
+train_indessa$annual_inc[is.na(train_indessa$annual_inc)] <- 40000
+```
+
+```{r}
+vanilla_train <-data.frame(train_indessa$member_id, train_indessa$loan_amnt, train_indessa$funded_amnt, train_indessa$funded_amnt_inv, term_num, train_indessa$int_rate, gd, home_own, train_indessa$annual_inc, ver_status, train_indessa$dti, train_indessa$delinq_2yrs, train_indessa$inq_last_6mths, train_indessa$mths_since_last_delinq, train_indessa$mths_since_last_record, train_indessa$open_acc, train_indessa$pub_rec, train_indessa$revol_bal, train_indessa$revol_util, train_indessa$total_acc, train_indessa$total_rec_int, train_indessa$total_rec_late_fee, train_indessa$recoveries, train_indessa$collection_recovery_fee, train_indessa$collections_12_mths_ex_med, train_indessa$mths_since_last_major_derog, app_type, l_w_p, train_indessa$acc_now_delinq, train_indessa$tot_coll_amt, train_indessa$tot_cur_bal, train_indessa$total_rev_hi_lim, train_indessa$loan_status)
+```
+
+```{r}
+for (i in 2:32) {
+  print(colnames(vanilla_train)[i])
+  print(colnames(vanilla_train)[33])
+  print(cor(vanilla_train[,i], vanilla_train[,33]))
+  print(abs(cor(vanilla_train[,i], vanilla_train[,33])))
+}
+```
+
+Select features with absolute correlation with loan_status > 0.1.
+```{r}
+vanilla_train.feature_selection <-data.frame(train_indessa$member_id, train_indessa$funded_amnt_inv, term_num, train_indessa$dti, l_w_p, train_indessa$total_rev_hi_lim, train_indessa$loan_status)
+```
+
+```{r}
+test_indessa <- read.csv("~/R/ML_Artivatic_dataset/test_indessa.csv", stringsAsFactors=FALSE)
+summary(test_indessa)
+```
+
+```{r}
+term_total_test = test_indessa$term
+term_num_test = c()
+for (t_test in term_total_test) {
+  term_num_test = c(term_num_test, as.integer(substr(t_test,1,2)))
+}
+```
+
+```{r, results='hide'}
+l_week_pay_test = test_indessa$last_week_pay
+l_w_p_test = c()
+for (l_test in l_week_pay_test) {
+  n = nchar(l_test)
+  l_w_p_test = c(l_w_p_test, as.integer(substr(l_test,1,n - 7)))
+}
+l_w_p_test[is.na(l_w_p_test)] <- 0
+```
+
+```{r}
+test_indessa$total_rev_hi_lim[is.na(test_indessa$total_rev_hi_lim)] <- 0
+```
+
+Form a similar test_set.
+```{r}
+vanilla_test.feature_selection <-data.frame(test_indessa$member_id, test_indessa$funded_amnt_inv, term_num_test, test_indessa$dti, l_w_p_test, test_indessa$total_rev_hi_lim)
+```
+
+75% of the sample size
+```{r}
+smp_size <- floor(0.675 * nrow(vanilla_train.feature_selection))
+```
+
+set the seed to make your partition reproducible
+```{r}
+set.seed(123)
+train_ind <- sample(seq_len(nrow(vanilla_train.feature_selection)), size = smp_size)
+```
+
+```{r}
+train <- vanilla_train.feature_selection[train_ind, ]
+validation <- vanilla_train.feature_selection[-train_ind, ]
+```
+
+```{r}
+normalize <- function(x)
+{
+    return((x- min(x)) /(max(x)-min(x)))
+}
+```
+
+```{r}
+train.normalized = data.frame(train$train_indessa.member_id)
+validation.normalized = data.frame(validation$train_indessa.member_id)
+```
+
+```{r}
+for (i in 2:6) {
+  train.normalized[,i] <- normalize(train[,i])
+  validation.normalized[,i] <- normalize(validation[,i])
+}
+```
+
+```{r}
+train.normalized[,7] = data.frame(train$train_indessa.loan_status)
+validation.normalized[,7] = data.frame(validation$train_indessa.loan_status)
+```
+
+```{r}
+colnames(train.normalized) = colnames(train)
+colnames(validation.normalized) = colnames(train)
+```
+
+GNB on original data
+```{r}
+M = matrix(as.numeric(unlist(train[,2:6])), ncol=5, byrow=F)
+y <- factor(train$train_indessa.loan_status)
+```
+
+```{r}
+colnames(M) <- c("funded_amnt_inv", "term_num", "dti", "l_w_p", "total_rev_hi_lim")
+print(colnames(M))
+```
+
+Train the Gaussian Naive Bayes
+```{r}
+gnb <- gaussian_naive_bayes(x = M, y = y)
+```
+
+```{r}
+summary(gnb)
+```
+
+```{r}
+N = matrix(as.numeric(unlist(validation[,2:6])), ncol=5, byrow=F)
+```
+
+```{r}
+colnames(N) <- c("funded_amnt_inv", "term_num", "dti", "l_w_p", "total_rev_hi_lim")
+print(colnames(N))
+```
+
+Classification
+```{r}
+gnb.original.val_output = predict(gnb, newdata = N, type = "prob") # head(gnb %class% M)
+```
+
+```{r}
+par(pty = 's')
+roc(factor(validation$train_indessa.loan_status), gnb.original.val_output[,1], plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+GNB on normalized data
+```{r}
+M = matrix(as.numeric(unlist(train.normalized[,2:6])), ncol=5, byrow=F)
+y <- factor(train$train_indessa.loan_status)
+```
+
+```{r}
+colnames(M) <- c("funded_amnt_inv", "term_num", "dti", "l_w_p", "total_rev_hi_lim")
+print(colnames(M))
+```
+
+Train the Gaussian Naive Bayes
+```{r}
+gnb <- gaussian_naive_bayes(x = M, y = y)
+```
+
+```{r}
+summary(gnb)
+```
+
+```{r}
+N = matrix(as.numeric(unlist(validation.normalized[,2:6])), ncol=5, byrow=F)
+```
+
+```{r}
+colnames(N) <- c("funded_amnt_inv", "term_num", "dti", "l_w_p", "total_rev_hi_lim")
+print(colnames(N))
+```
+
+Classification
+```{r}
+gnb.normalized.val_output = predict(gnb, newdata = N, type = "prob") # head(gnb %class% M)
+```
+
+```{r}
+par(pty = 's')
+roc(factor(validation$train_indessa.loan_status), gnb.normalized.val_output[,1], plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+Train the Logistic Regression
+```{r}
+glm.fit <- glm(formula = train_indessa.loan_status ~ train_indessa.funded_amnt_inv + term_num + train_indessa.dti + l_w_p + train_indessa.total_rev_hi_lim, data = train) # , family = binomial, model = TRUE)
+```
+
+```{r}
+summary(glm.fit)
+```
+
+Classification
+```{r}
+glm.original.val_output = predict.glm(glm.fit, newdata = validation, type = "terms") # head(gnb %class% M)
+```
+
+```{r}
+par(pty = 's')
+roc(factor(validation$train_indessa.loan_status), glm.original.val_output[,1], plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+Train the Logistic Regression
+```{r}
+glm.fit <- glm(formula = train_indessa.loan_status ~ train_indessa.funded_amnt_inv + term_num + train_indessa.dti + l_w_p + train_indessa.total_rev_hi_lim, data = train.normalized) # , family = binomial, model = TRUE)
+```
+
+```{r}
+summary(glm.fit)
+```
+
+Classification
+```{r}
+glm.normalized.val_output = predict.glm(glm.fit, newdata = validation.normalized, type = "terms") # head(gnb %class% M)
+```
+
+```{r}
+par(pty = 's')
+roc(factor(validation.normalized$train_indessa.loan_status), glm.normalized.val_output[,1], plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+K - Nearest Neighbors on original data
+```{r}
+RES = c()
+smp_size_1 <- floor(0.1 * nrow(train))
+smp_size_2 <- floor(0.1 * nrow(validation))
+for (i in 1:23) {
+  # set.seed(123)
+  train_ind <- sample(seq_len(nrow(train)), size = smp_size_1)
+  val_ind <- sample(seq_len(nrow(validation)), size = smp_size_2)
+  knn.original.train <- train[train_ind,]
+  knn.original.val <- validation[val_ind,]
+  result = knn(train = knn.original.train[,2:6], test = knn.original.val[,2:6], cl = knn.original.train[,7], k=i)
+  err = sum(abs(as.numeric(unlist(result)) - knn.original.val[,7]), na.rm = TRUE)
+  RES = c(RES,err)
+}
+```
+
+```{r}
+plot(RES, type = 'b', col = 'red', xlab = "k", ylab = "error")
+```
+
+```{r}
+knn.original.result = knn(train = train[,2:6], test = validation[,2:6], cl = train[,7], k=5, prob = TRUE)
+knn.original.result.prob <- attributes(knn.original.result)$prob
+```
+
+```{r}
+knn.original.result.prob.treated = knn.original.result.prob
+for (r in 1:173040) {
+  t = knn.original.result.prob[r]
+  if (knn.original.result[r] == 1) {
+    knn.original.result.prob.treated[r] = 1 - t
+  } else {
+    knn.original.result.prob.treated[r] = t
+  }
+}
+```
+
+
+```{r}
+par(pty = 's')
+roc(factor(validation$train_indessa.loan_status), knn.original.result.prob.treated, plot = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+K - Nearest Neighbors on normalized data
+```{r}
+RES = c()
+smp_size_1 <- floor(0.1 * nrow(train))
+smp_size_2 <- floor(0.1 * nrow(validation))
+for (i in 1:23) {
+  # set.seed(123)
+  train_ind <- sample(seq_len(nrow(train.normalized)), size = smp_size_1)
+  val_ind <- sample(seq_len(nrow(validation.normalized)), size = smp_size_2)
+  knn.normalized.train <- train.normalized[train_ind,]
+  knn.normalized.val <- validation.normalized[val_ind,]
+  result = knn(train = knn.normalized.train[,2:6], test = knn.normalized.val[,2:6], cl = knn.normalized.train[,7], k=i)
+  err = sum(abs(as.numeric(unlist(result)) - knn.normalized.val[,7]), na.rm = TRUE)
+  RES = c(RES,err)
+}
+```
+
+```{r}
+plot(RES, type = 'b', col = 'red', xlab = "k", ylab = "error")
+```
+
+```{r}
+knn.normalized.result = knn(train = train.normalized[,2:6], test = validation.normalized[,2:6], cl = train.normalized[,7], k=6, prob = TRUE)
+knn.normalized.result.prob <- attributes(knn.normalized.result)$prob
+```
+
+```{r}
+knn.normalized.result.prob.treated = knn.normalized.result.prob
+for (r in 1:173040) {
+  t = knn.normalized.result.prob[r]
+  if (knn.normalized.result[r] == 1) {
+    knn.normalized.result.prob.treated[r] = 1 - t
+  } else {
+    knn.normalized.result.prob.treated[r] = t
+  }
+}
+```
+
+
+```{r}
+par(pty = 's')
+roc(factor(validation.normalized$train_indessa.loan_status), knn.normalized.result.prob.treated, plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+Decision Trees on original data
+```{r}
+dt.original.fit = rpart(formula = train_indessa.loan_status ~ train_indessa.funded_amnt_inv + term_num + train_indessa.dti + l_w_p + train_indessa.total_rev_hi_lim, data = train, method = "class", control = rpart.control(cp = 0.1))
+```
+
+```{r}
+dt.original.result = predict(dt.original.fit, validation[,2:6], type = "prob")
+```
+
+```{r}
+par(pty = 's')
+roc(factor(validation$train_indessa.loan_status), dt.original.result[,1], plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+Decision Trees on normalized data
+```{r}
+dt.normalized.fit = rpart(formula = train_indessa.loan_status ~ train_indessa.funded_amnt_inv + term_num + train_indessa.dti + l_w_p + train_indessa.total_rev_hi_lim, data = train.normalized, method = "class", control = rpart.control(cp = 0.1))
+```
+
+```{r}
+dt.normalized.result = predict(dt.normalized.fit, validation.normalized[,2:6], type = "prob")
+```
+
+```{r}
+par(pty = 's')
+roc(factor(validation.normalized$train_indessa.loan_status), dt.normalized.result[,1], plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+As we can see above, the best results from
+1. Gaussian Naive Bayes
+2. Logistic Regression
+3. K - Nearest Neighbors
+4. Decision Trees
+
+on
+1. Original
+2. Normalized
+
+data; are manifested during,
+1. Gaussian Naive Bayes on Original data, AUC: 68.5
+2. K - Nearest Neighbors on Original data, k = 5, AUC: 63.6
+3. K - Nearest Neighbors on Normalized data, k = 6, AUC: 62.6
+
+Next we will try to optimize for the results in 2 and 3, by changing the k values a little bit.
+
+K - Nearest Neighbors on original data for k = 4
+```{r}
+knn.original.result.optimization_1 = knn(train = train[,2:6], test = validation[,2:6], cl = train[,7], k=4, prob = TRUE)
+knn.original.result.optimization_1.prob <- attributes(knn.original.result.optimization_1)$prob
+```
+
+```{r}
+knn.original.result.optimization_1.prob.treated = knn.original.result.optimization_1.prob
+for (r in 1:173040) {
+  t = knn.original.result.optimization_1.prob[r]
+  if (knn.original.result.optimization_1[r] == 1) {
+    knn.original.result.optimization_1.prob.treated[r] = 1 - t
+  } else {
+    knn.original.result.optimization_1.prob.treated[r] = t
+  }
+}
+```
+
+```{r}
+par(pty = 's')
+roc(factor(validation$train_indessa.loan_status), knn.original.result.optimization_1.prob.treated, plot = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+K - Nearest Neighbors on original data for k = 6
+```{r}
+knn.original.result.optimization_2 = knn(train = train[,2:6], test = validation[,2:6], cl = train[,7], k=6, prob = TRUE)
+knn.original.result.optimization_2.prob <- attributes(knn.original.result.optimization_2)$prob
+```
+
+```{r}
+knn.original.result.optimization_2.prob.treated = knn.original.result.optimization_2.prob
+for (r in 1:173040) {
+  t = knn.original.result.optimization_2.prob[r]
+  if (knn.original.result.optimization_2[r] == 1) {
+    knn.original.result.optimization_2.prob.treated[r] = 1 - t
+  } else {
+    knn.original.result.optimization_2.prob.treated[r] = t
+  }
+}
+```
+
+```{r}
+par(pty = 's')
+roc(factor(validation$train_indessa.loan_status), knn.original.result.optimization_2.prob.treated, plot = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+K - Nearest Neighbors on normalized data for k = 5
+```{r}
+knn.normalized.result.opimization_1 = knn(train = train.normalized[,2:6], test = validation.normalized[,2:6], cl = train.normalized[,7], k=5, prob = TRUE)
+knn.normalized.result.opimization_1.prob <- attributes(knn.normalized.result.opimization_1)$prob
+```
+
+```{r}
+knn.normalized.result.opimization_1.prob.treated = knn.normalized.result.opimization_1.prob
+for (r in 1:173040) {
+  t = knn.normalized.result.opimization_1.prob[r]
+  if (knn.normalized.result.opimization_1[r] == 1) {
+    knn.normalized.result.opimization_1.prob.treated[r] = 1 - t
+  } else {
+    knn.normalized.result.opimization_1.prob.treated[r] = t
+  }
+}
+```
+
+
+```{r}
+par(pty = 's')
+roc(factor(validation.normalized$train_indessa.loan_status), knn.normalized.result.opimization_1.prob.treated, plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+K - Nearest Neighbors on normalized data for k = 7
+```{r}
+knn.normalized.result.opimization_2 = knn(train = train.normalized[,2:6], test = validation.normalized[,2:6], cl = train.normalized[,7], k=7, prob = TRUE)
+knn.normalized.result.opimization_2.prob <- attributes(knn.normalized.result.opimization_2)$prob
+```
+
+```{r}
+knn.normalized.result.opimization_2.prob.treated = knn.normalized.result.opimization_2.prob
+for (r in 1:173040) {
+  t = knn.normalized.result.opimization_2.prob[r]
+  if (knn.normalized.result.opimization_2[r] == 1) {
+    knn.normalized.result.opimization_2.prob.treated[r] = 1 - t
+  } else {
+    knn.normalized.result.opimization_2.prob.treated[r] = t
+  }
+}
+```
+
+
+```{r}
+par(pty = 's')
+roc(factor(validation.normalized$train_indessa.loan_status), knn.normalized.result.opimization_2.prob.treated, plot = TRUE, legacy.axes = TRUE, percent = TRUE, xlab  = "False Positive Percentage", ylab = "True Positive Percentage", col = "#377eb8", lwd = 4, print.auc = TRUE)
+```
+
+The winner is still Gaussian Naive Bayes on original data, AUC: 68.5.
+
