@@ -11,7 +11,7 @@ Requirements:
 R - 3.6.0
 
 
-Performeed on OS:
+Performed on OS:
 
 
 Windows 10
