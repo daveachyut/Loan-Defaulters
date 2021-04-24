@@ -30,3 +30,9 @@ This bank uses a pool of investors to sanction their loans. For example: If any 
 
 
 In this challenge, you will help this bank by predicting the probability that a member will default.
+
+
+Solutions at:
+
+
+https://github.com/daveachyut/Loan-Defaulters/edit/main/README.md
