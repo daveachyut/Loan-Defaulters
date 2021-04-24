@@ -35,4 +35,4 @@ In this challenge, you will help this bank by predicting the probability that a 
 Solutions at:
 
 
-https://github.com/daveachyut/Loan-Defaulters/edit/main/README.md
+https://github.com/daveachyut/Loan-Defaulters/wiki
